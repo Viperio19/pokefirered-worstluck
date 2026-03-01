@@ -394,6 +394,8 @@ extern const u8 gText_PkmnCantSwitchOut[];
 extern const u8 gString_Dummy[];
 extern const u8 gString_PokemonFireRed_Staff[]; // FR
 extern const u8 gString_PokemonLeafGreen_Staff[]; // LG
+extern const u8 gCreditsString_Modded_By[];
+extern const u8 gCreditsString_Viperio[];
 extern const u8 gCreditsString_Director[];
 extern const u8 gCreditsString_Junichi_Masuda[];
 extern const u8 gCreditsString_Art_Director_Battle_Director[];

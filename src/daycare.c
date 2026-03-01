@@ -1146,12 +1146,12 @@ static bool8 TryProduceOrHatchEgg(struct DayCare *daycare)
     }
 
     // Check if an egg should be produced
-    if (daycare->offspringPersonality == 0 && validEggs == DAYCARE_MON_COUNT && (daycare->mons[1].steps & 0xFF) == 0xFF)
-    {
-        u8 compatibility = GetDaycareCompatibilityScore(daycare);
-        if (compatibility > (Random() * 100u) / USHRT_MAX)
-            TriggerPendingDaycareEgg();
-    }
+    // if (daycare->offspringPersonality == 0 && validEggs == DAYCARE_MON_COUNT && (daycare->mons[1].steps & 0xFF) == 0xFF)
+    // {
+    //     u8 compatibility = GetDaycareCompatibilityScore(daycare);
+    //     if (compatibility > (Random() * 100u) / USHRT_MAX)
+    //         TriggerPendingDaycareEgg();
+    // }
 
     // Hatch Egg
     if (++daycare->stepCounter == 255)

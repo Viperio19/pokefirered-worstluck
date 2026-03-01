@@ -1708,7 +1708,7 @@ static bool8 Fishing2(struct Task *task)
     const s16 arr2[] = {1, 3, 6};
 
     task->tRoundsPlayed = 0;
-    task->tMinRoundsRequired = arr1[task->tFishingRod] + (Random() % arr2[task->tFishingRod]);
+    task->tMinRoundsRequired = arr1[task->tFishingRod] + (arr2[task->tFishingRod] - 1);
     task->tPlayerGfxId = gObjectEvents[gPlayerAvatar.objectEventId].graphicsId;
     playerObjEvent = &gObjectEvents[gPlayerAvatar.objectEventId];
     ObjectEventClearHeldMovementIfActive(playerObjEvent);
@@ -1737,8 +1737,7 @@ static bool8 Fishing4(struct Task *task)
     task->tStep++;
     task->tFrameCounter = 0;
     task->tNumDots = 0;
-    randVal = Random();
-    randVal %= 10;
+    randVal = 9;
     task->tDotsRequired = randVal + 1;
     if (task->tRoundsPlayed == 0)
         task->tDotsRequired = randVal + 4;
@@ -1782,14 +1781,7 @@ static bool8 Fishing6(struct Task *task)
     task->tStep++;
     bite = FALSE;
 
-    if (!DoesCurrentMapHaveFishingMons() || Random() & 1)
-    {
-        task->tStep = FISHING_NO_BITE;
-    }
-    else
-    {
-        StartSpriteAnim(&gSprites[gPlayerAvatar.spriteId], GetFishingBiteDirectionAnimNum(GetPlayerFacingDirection()));
-    }
+    task->tStep = FISHING_NO_BITE;
     return TRUE;
 }
 

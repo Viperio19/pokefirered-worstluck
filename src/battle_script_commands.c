@@ -1090,7 +1090,7 @@ static void Cmd_accuracycheck(void)
             calc = (calc * (100 - param)) / 100;
 
         // final calculation
-        if ((Random() % 100 + 1) > calc)
+        if (GetBattlerSide(gBattlerAttacker) == B_SIDE_PLAYER && calc < 100)
         {
             gMoveResultFlags |= MOVE_RESULT_MISSED;
             if (gBattleTypeFlags & BATTLE_TYPE_DOUBLE
@@ -1196,7 +1196,7 @@ static void Cmd_critcalc(void)
     if ((gBattleMons[gBattlerTarget].ability != ABILITY_BATTLE_ARMOR && gBattleMons[gBattlerTarget].ability != ABILITY_SHELL_ARMOR)
      && !(gStatuses3[gBattlerAttacker] & STATUS3_CANT_SCORE_A_CRIT)
      && !(gBattleTypeFlags & BATTLE_TYPE_OLD_MAN_TUTORIAL)
-     && !(Random() % sCriticalHitChance[critChance])
+     && GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER
      && (!(gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE) || BtlCtrl_OakOldMan_TestState2Flag(1))
      && !(gBattleTypeFlags & BATTLE_TYPE_POKEDUDE))
         gCritMultiplier = 2;
@@ -1558,7 +1558,7 @@ u8 AI_TypeCalc(u16 move, u16 targetSpecies, u8 targetAbility)
 static inline void ApplyRandomDmgMultiplier(void)
 {
     u16 rand = Random();
-    u16 randPercent = 100 - (rand % 16);
+    u16 randPercent = GetBattlerSide(gBattlerAttacker) == B_SIDE_PLAYER ? 85 : 100;
 
     if (gBattleMoveDamage != 0)
     {
@@ -1593,7 +1593,7 @@ static void Cmd_adjustnormaldamage(void)
 
     gPotentialItemEffectBattler = gBattlerTarget;
 
-    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && (Random() % 100) < param)
+    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT)
     {
         RecordItemEffectBattle(gBattlerTarget, holdEffect);
         gSpecialStatuses[gBattlerTarget].focusBanded = 1;
@@ -1636,7 +1636,7 @@ static void Cmd_adjustnormaldamage2(void)
 
     gPotentialItemEffectBattler = gBattlerTarget;
 
-    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && (Random() % 100) < param)
+    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT)
     {
         RecordItemEffectBattle(gBattlerTarget, holdEffect);
         gSpecialStatuses[gBattlerTarget].focusBanded = 1;
@@ -2353,7 +2353,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
             BattleScriptPush(gBattlescriptCurrInstr + 1);
 
             if (sStatusFlagsForMoveEffects[gBattleCommunication[MOVE_EFFECT_BYTE]] == STATUS1_SLEEP)
-                gBattleMons[gEffectBattler].status1 |= STATUS1_SLEEP_TURN((Random() & 3) + 2); // 2-5 turns
+                gBattleMons[gEffectBattler].status1 |= STATUS1_SLEEP_TURN(GetBattlerSide(gEffectBattler) == B_SIDE_PLAYER ? 5 : 2); // 2-5 turns
             else
                 gBattleMons[gEffectBattler].status1 |= sStatusFlagsForMoveEffects[gBattleCommunication[MOVE_EFFECT_BYTE]];
 
@@ -2410,7 +2410,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 }
                 else
                 {
-                    gBattleMons[gEffectBattler].status2 |= STATUS2_CONFUSION_TURN(((Random()) % 4) + 2); // 2-5 turns
+                    gBattleMons[gEffectBattler].status2 |= STATUS2_CONFUSION_TURN(GetBattlerSide(gEffectBattler) == B_SIDE_PLAYER ? 5 : 2); // 2-5 turns
 
                     BattleScriptPush(gBattlescriptCurrInstr + 1);
                     gBattlescriptCurrInstr = sMoveEffectBS_Ptrs[gBattleCommunication[MOVE_EFFECT_BYTE]];
@@ -2442,7 +2442,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 {
                     gBattleMons[gEffectBattler].status2 |= STATUS2_MULTIPLETURNS;
                     gLockedMoves[gEffectBattler] = gCurrentMove;
-                    gBattleMons[gEffectBattler].status2 |= STATUS2_UPROAR_TURN((Random() & 3) + 2); // 2-5 turns
+                    gBattleMons[gEffectBattler].status2 |= STATUS2_UPROAR_TURN(GetBattlerSide(gEffectBattler) == B_SIDE_PLAYER ? 5 : 2); // 2-5 turns
 
                     BattleScriptPush(gBattlescriptCurrInstr + 1);
                     gBattlescriptCurrInstr = sMoveEffectBS_Ptrs[gBattleCommunication[MOVE_EFFECT_BYTE]];
@@ -2470,7 +2470,13 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 }
                 else
                 {
-                    gBattleCommunication[MOVE_EFFECT_BYTE] = Random() % 3 + 3;
+                    if (gBattleMons[gEffectBattler].ability != ABILITY_LIMBER)
+                        gBattleCommunication[MOVE_EFFECT_BYTE] = MOVE_EFFECT_PARALYSIS;
+                    else if (!IS_BATTLER_OF_TYPE(gEffectBattler, TYPE_ICE) && gBattleMons[gEffectBattler].ability != ABILITY_MAGMA_ARMOR)
+                        gBattleCommunication[MOVE_EFFECT_BYTE] = MOVE_EFFECT_FREEZE;
+                    else
+                        gBattleCommunication[MOVE_EFFECT_BYTE] = MOVE_EFFECT_BURN;                        
+
                     SetMoveEffect(FALSE, 0);
                 }
                 break;
@@ -2487,7 +2493,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 }
                 else
                 {
-                    gBattleMons[gEffectBattler].status2 |= STATUS2_WRAPPED_TURN((Random() & 3) + 3); // 3-6 turns
+                    gBattleMons[gEffectBattler].status2 |= STATUS2_WRAPPED_TURN(GetBattlerSide(gEffectBattler) == B_SIDE_PLAYER ? 6 : 3); // 3-6 turns
 
                     *(gBattleStruct->wrappedMove + gEffectBattler * 2 + 0) = gCurrentMove;
                     *(gBattleStruct->wrappedMove + gEffectBattler * 2 + 1) = gCurrentMove >> 8;
@@ -2725,7 +2731,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 {
                     gBattleMons[gEffectBattler].status2 |= STATUS2_MULTIPLETURNS;
                     gLockedMoves[gEffectBattler] = gCurrentMove;
-                    gBattleMons[gEffectBattler].status2 |= STATUS2_LOCK_CONFUSE_TURN((Random() & 1) + 2); // thrash for 2-3 turns
+                    gBattleMons[gEffectBattler].status2 |= STATUS2_LOCK_CONFUSE_TURN(2); // thrash for 2-3 turns
                 }
                 break;
             case MOVE_EFFECT_KNOCK_OFF:
@@ -2786,7 +2792,7 @@ static void Cmd_seteffectwithchance(void)
         gBattleCommunication[MOVE_EFFECT_BYTE] &= ~MOVE_EFFECT_CERTAIN;
         SetMoveEffect(FALSE, MOVE_EFFECT_CERTAIN);
     }
-    else if (Random() % 100 <= percentChance
+    else if ((GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT || percentChance >= 100)
              && gBattleCommunication[MOVE_EFFECT_BYTE]
              && !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT))
     {
@@ -5616,7 +5622,7 @@ static void Cmd_adjustsetdamage(void)
 
     gPotentialItemEffectBattler = gBattlerTarget;
 
-    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && (Random() % 100) < param)
+    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT)
     {
         RecordItemEffectBattle(gBattlerTarget, holdEffect);
         gSpecialStatuses[gBattlerTarget].focusBanded = 1;
@@ -6228,7 +6234,7 @@ static void Cmd_setprotectlike(void)
     if (gCurrentTurnActionNumber == (gBattlersCount - 1))
         notLastTurn = FALSE;
 
-    if (sProtectSuccessRates[gDisableStructs[gBattlerAttacker].protectUses] >= Random() && notLastTurn)
+    if ((GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT || gDisableStructs[gBattlerAttacker].protectUses == 0) && notLastTurn)
     {
         if (gBattleMoves[gCurrentMove].effect == EFFECT_PROTECT)
         {
@@ -6862,11 +6868,7 @@ static void Cmd_setmultihitcounter(void)
     }
     else
     {
-        gMultiHitCounter = Random() & 3;
-        if (gMultiHitCounter > 1)
-            gMultiHitCounter = (Random() & 3) + 2;
-        else
-            gMultiHitCounter += 2;
+        gMultiHitCounter = GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT ? 5 : 2;
     }
 
     gBattlescriptCurrInstr += 2;
@@ -7118,7 +7120,7 @@ static void Cmd_tryKO(void)
 
     gPotentialItemEffectBattler = gBattlerTarget;
 
-    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && (Random() % 100) < param)
+    if (holdEffect == HOLD_EFFECT_FOCUS_BAND && GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT)
     {
         RecordItemEffectBattle(gBattlerTarget, HOLD_EFFECT_FOCUS_BAND);
         gSpecialStatuses[gBattlerTarget].focusBanded = 1;
@@ -7522,7 +7524,7 @@ static void Cmd_metronome(void)
     {
         s32 i;
 
-        gCurrentMove = (Random() & 0x1FF) + 1;
+        gCurrentMove = GetBattlerSide(gBattlerAttacker) == B_SIDE_PLAYER ? MOVE_SPLASH : (Random() & 0x1FF) + 1;
         if (gCurrentMove >= MOVES_COUNT)
             continue;
 
@@ -7556,11 +7558,7 @@ static void Cmd_dmgtolevel(void)
 
 static void Cmd_psywavedamageeffect(void)
 {
-    s32 randDamage;
-
-    while ((randDamage = Random() % 16) > 10);
-
-    randDamage *= 10;
+    s32 randDamage = GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT ? 100 : 0;
     gBattleMoveDamage = gBattleMons[gBattlerAttacker].level * (randDamage + 50) / 100;
     gBattlescriptCurrInstr++;
 }
@@ -7629,7 +7627,7 @@ static void Cmd_disablelastusedattack(void)
         PREPARE_MOVE_BUFFER(gBattleTextBuff1, gBattleMons[gBattlerTarget].moves[i])
 
         gDisableStructs[gBattlerTarget].disabledMove = gBattleMons[gBattlerTarget].moves[i];
-        gDisableStructs[gBattlerTarget].disableTimer = (Random() & 3) + 2;
+        gDisableStructs[gBattlerTarget].disableTimer =  GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER ? 5 : 2;
         gDisableStructs[gBattlerTarget].disableTimerStartValue = gDisableStructs[gBattlerTarget].disableTimer; // used to save the random amount of turns?
         gBattlescriptCurrInstr += 5;
     }
@@ -7661,7 +7659,7 @@ static void Cmd_trysetencore(void)
     {
         gDisableStructs[gBattlerTarget].encoredMove = gBattleMons[gBattlerTarget].moves[i];
         gDisableStructs[gBattlerTarget].encoredMovePos = i;
-        gDisableStructs[gBattlerTarget].encoreTimer = (Random() & 3) + 3;
+        gDisableStructs[gBattlerTarget].encoreTimer = GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER ? 6 : 3;
         gDisableStructs[gBattlerTarget].encoreTimerStartValue = gDisableStructs[gBattlerTarget].encoreTimer;
         gBattlescriptCurrInstr += 5;
     }
@@ -7955,7 +7953,7 @@ static void Cmd_tryspiteppreduce(void)
 
         if (i != MAX_MON_MOVES && gBattleMons[gBattlerTarget].pp[i] > 1)
         {
-            s32 ppToDeduct = (Random() & 3) + 2;
+            s32 ppToDeduct = GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER ? 5 : 2;
             if (gBattleMons[gBattlerTarget].pp[i] < ppToDeduct)
                 ppToDeduct = gBattleMons[gBattlerTarget].pp[i];
 
@@ -8239,11 +8237,7 @@ static void Cmd_presentdamagecalculation(void)
 {
     s32 rand = Random() & 0xFF;
 
-    if (rand < 102)
-        gDynamicBasePower = 40;
-    else if (rand < 178)
-        gDynamicBasePower = 80;
-    else if (rand < 204)
+    if (GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT)
         gDynamicBasePower = 120;
     else
     {
@@ -8252,7 +8246,7 @@ static void Cmd_presentdamagecalculation(void)
             gBattleMoveDamage = 1;
         gBattleMoveDamage *= -1;
     }
-    if (rand < 204)
+    if (GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT)
         gBattlescriptCurrInstr = BattleScript_HitFromCritCalc;
     else if (gBattleMons[gBattlerTarget].maxHP == gBattleMons[gBattlerTarget].hp)
         gBattlescriptCurrInstr = BattleScript_AlreadyAtFullHp;
@@ -8285,35 +8279,10 @@ static void Cmd_magnitudedamagecalculation(void)
 {
     s32 magnitude = Random() % 100;
 
-    if (magnitude < 5)
+    if (GET_BATTLER_SIDE(gBattlerAttacker) == B_SIDE_PLAYER)
     {
         gDynamicBasePower = 10;
         magnitude = 4;
-    }
-    else if (magnitude < 15)
-    {
-        gDynamicBasePower = 30;
-        magnitude = 5;
-    }
-    else if (magnitude < 35)
-    {
-        gDynamicBasePower = 50;
-        magnitude = 6;
-    }
-    else if (magnitude < 65)
-    {
-        gDynamicBasePower = 70;
-        magnitude = 7;
-    }
-    else if (magnitude < 85)
-    {
-        gDynamicBasePower = 90;
-        magnitude = 8;
-    }
-    else if (magnitude < 95)
-    {
-        gDynamicBasePower = 110;
-        magnitude = 9;
     }
     else
     {
@@ -9260,29 +9229,29 @@ static void Cmd_getsecretpowereffect(void)
 
 static void Cmd_pickup(void)
 {
-    s32 i;
-    u32 j;
-    u16 species, heldItem;
-    u32 ability;
+    // s32 i;
+    // u32 j;
+    // u16 species, heldItem;
+    // u32 ability;
 
-    for (i = 0; i < PARTY_SIZE; i++)
-    {
-        species = GetMonData(&gPlayerParty[i], MON_DATA_SPECIES_OR_EGG);
-        heldItem = GetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM);
-        if (GetMonData(&gPlayerParty[i], MON_DATA_ABILITY_NUM) != ABILITY_NONE)
-            ability = gSpeciesInfo[species].abilities[1];
-        else
-            ability = gSpeciesInfo[species].abilities[0];
-        if (ability == ABILITY_PICKUP && species != SPECIES_NONE && species != SPECIES_EGG && heldItem == ITEM_NONE && !(Random() % 10))
-        {
-            s32 random = Random() % 100;
+    // for (i = 0; i < PARTY_SIZE; i++)
+    // {
+    //     species = GetMonData(&gPlayerParty[i], MON_DATA_SPECIES_OR_EGG);
+    //     heldItem = GetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM);
+    //     if (GetMonData(&gPlayerParty[i], MON_DATA_ABILITY_NUM) != ABILITY_NONE)
+    //         ability = gSpeciesInfo[species].abilities[1];
+    //     else
+    //         ability = gSpeciesInfo[species].abilities[0];
+    //     if (ability == ABILITY_PICKUP && species != SPECIES_NONE && species != SPECIES_EGG && heldItem == ITEM_NONE && !(Random() % 10))
+    //     {
+    //         s32 random = Random() % 100;
 
-            for (j = 0; j < 15; ++j)
-                if (sPickupItems[j].chance > random)
-                    break;
-            SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &sPickupItems[j]);
-        }
-    }
+    //         for (j = 0; j < 15; ++j)
+    //             if (sPickupItems[j].chance > random)
+    //                 break;
+    //         SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &sPickupItems[j]);
+    //     }
+    // }
     gBattlescriptCurrInstr++;
 }
 

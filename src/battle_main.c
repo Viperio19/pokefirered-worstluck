@@ -3444,7 +3444,7 @@ u8 GetWhoStrikesFirst(u8 battler1, u8 battler2, bool8 ignoreChosenMoves)
         speedBattler1 /= 2;
     if (gBattleMons[battler1].status1 & STATUS1_PARALYSIS)
         speedBattler1 /= 4;
-    if (holdEffect == HOLD_EFFECT_QUICK_CLAW && gRandomTurnNumber < (0xFFFF * holdEffectParam) / 100)
+    if (holdEffect == HOLD_EFFECT_QUICK_CLAW && GetBattlerSide(battler1) == B_SIDE_OPPONENT)
         speedBattler1 = UINT_MAX;
     // check second battlerId's speed
     speedBattler2 = (gBattleMons[battler2].speed * speedMultiplierBattler2)
@@ -3469,7 +3469,7 @@ u8 GetWhoStrikesFirst(u8 battler1, u8 battler2, bool8 ignoreChosenMoves)
         speedBattler2 /= 2;
     if (gBattleMons[battler2].status1 & STATUS1_PARALYSIS)
         speedBattler2 /= 4;
-    if (holdEffect == HOLD_EFFECT_QUICK_CLAW && gRandomTurnNumber < (0xFFFF * holdEffectParam) / 100)
+    if (holdEffect == HOLD_EFFECT_QUICK_CLAW && GetBattlerSide(battler2) == B_SIDE_OPPONENT)
         speedBattler2 = UINT_MAX;
     if (ignoreChosenMoves)
     {
@@ -3503,8 +3503,8 @@ u8 GetWhoStrikesFirst(u8 battler1, u8 battler2, bool8 ignoreChosenMoves)
         // both priorities are the same
         if (gBattleMoves[moveBattler1].priority == gBattleMoves[moveBattler2].priority)
         {
-            if (speedBattler1 == speedBattler2 && Random() & 1)
-                strikesFirst = 2; // same speeds, same priorities
+            if (speedBattler1 == speedBattler2)
+                strikesFirst = GetBattlerSide(battler1) == B_SIDE_PLAYER ? 2 : 1; // same speeds, same priorities
             else if (speedBattler1 < speedBattler2)
                 strikesFirst = 1; // battler2 has more speed
             // else battler1 has more speed
@@ -3516,8 +3516,8 @@ u8 GetWhoStrikesFirst(u8 battler1, u8 battler2, bool8 ignoreChosenMoves)
     // both priorities are equal to 0
     else
     {
-        if (speedBattler1 == speedBattler2 && Random() & 1)
-            strikesFirst = 2; // same speeds, same priorities
+        if (speedBattler1 == speedBattler2)
+            strikesFirst = GetBattlerSide(battler1) == B_SIDE_PLAYER ? 2 : 1; // same speeds, same priorities
         else if (speedBattler1 < speedBattler2)
             strikesFirst = 1; // battler2 has more speed
         // else battler1 has more speed
@@ -3910,11 +3910,11 @@ static void WaitForEvoSceneToFinish(void)
 
 static void ReturnFromBattleToOverworld(void)
 {
-    if (!(gBattleTypeFlags & BATTLE_TYPE_LINK))
-    {
-        RandomlyGivePartyPokerus(gPlayerParty);
-        PartySpreadPokerus(gPlayerParty);
-    }
+    // if (!(gBattleTypeFlags & BATTLE_TYPE_LINK))
+    // {
+    //     RandomlyGivePartyPokerus(gPlayerParty);
+    //     PartySpreadPokerus(gPlayerParty);
+    // }
     if (!(gBattleTypeFlags & BATTLE_TYPE_LINK) || !gReceivedRemoteLinkPlayers)
     {
         gSpecialVar_Result = gBattleOutcome;
@@ -4257,7 +4257,7 @@ bool8 TryRunFromBattle(u8 battler)
             if (gBattleMons[battler].speed < gBattleMons[BATTLE_OPPOSITE(battler)].speed)
             {
                 speedVar = (gBattleMons[battler].speed * 128) / (gBattleMons[BATTLE_OPPOSITE(battler)].speed) + (gBattleStruct->runTries * 30);
-                if (speedVar > (Random() & 0xFF))
+                if (speedVar > 0xFF)
                     effect++;
             }
             else // same speed or faster

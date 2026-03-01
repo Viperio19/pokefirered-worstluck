@@ -1763,6 +1763,20 @@ void CreateMon(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 hasFix
     CalculateMonStats(mon);
 }
 
+static bool8 IsNeutralNaturePersonality(u32 personality)
+{
+    u8 i;
+    u8 nature = GetNatureFromPersonality(personality);
+
+    for (i = 0; i < NUM_NATURE_STATS; i++)
+    {
+        if (sNatureStatTable[nature][i] != 0)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
 void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId)
 {
     u8 speciesName[POKEMON_NAME_LENGTH + 1];
@@ -1776,8 +1790,6 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
         personality = fixedPersonality;
     else
         personality = Random32();
-
-    SetBoxMonData(boxMon, MON_DATA_PERSONALITY, &personality);
 
     //Determine original trainer ID
     if (otIdType == OT_ID_RANDOM_NO_SHINY) //Pokemon cannot be shiny
@@ -1799,7 +1811,14 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
               | (gSaveBlock2Ptr->playerTrainerId[1] << 8)
               | (gSaveBlock2Ptr->playerTrainerId[2] << 16)
               | (gSaveBlock2Ptr->playerTrainerId[3] << 24);
+
+        do
+        {
+            personality = Random32();
+        } while (IsShinyOtIdPersonality(value, personality) || !IsNeutralNaturePersonality(personality)); 
     }
+
+    SetBoxMonData(boxMon, MON_DATA_PERSONALITY, &personality);
 
     SetBoxMonData(boxMon, MON_DATA_OT_ID, &value);
 
@@ -1821,7 +1840,17 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
     SetBoxMonData(boxMon, MON_DATA_POKEBALL, &value);
     SetBoxMonData(boxMon, MON_DATA_OT_GENDER, &gSaveBlock2Ptr->playerGender);
 
-    if (fixedIV < USE_RANDOM_IVS)
+    if (otIdType != OT_ID_RANDOM_NO_SHINY && otIdType != OT_ID_PRESET)
+    {
+        u8 zero = 0;
+        SetBoxMonData(boxMon, MON_DATA_HP_IV, &zero);
+        SetBoxMonData(boxMon, MON_DATA_ATK_IV, &zero);
+        SetBoxMonData(boxMon, MON_DATA_DEF_IV, &zero);
+        SetBoxMonData(boxMon, MON_DATA_SPEED_IV, &zero);
+        SetBoxMonData(boxMon, MON_DATA_SPATK_IV, &zero);
+        SetBoxMonData(boxMon, MON_DATA_SPDEF_IV, &zero);
+    }
+    else if (fixedIV < USE_RANDOM_IVS)
     {
         SetBoxMonData(boxMon, MON_DATA_HP_IV, &fixedIV);
         SetBoxMonData(boxMon, MON_DATA_ATK_IV, &fixedIV);
@@ -3686,10 +3715,20 @@ void CopyMon(void *dest, void *src, size_t size)
 u8 GiveMonToPlayer(struct Pokemon *mon)
 {
     s32 i;
+    u8 zero = 0;
 
     SetMonData(mon, MON_DATA_OT_NAME, gSaveBlock2Ptr->playerName);
     SetMonData(mon, MON_DATA_OT_GENDER, &gSaveBlock2Ptr->playerGender);
     SetMonData(mon, MON_DATA_OT_ID, gSaveBlock2Ptr->playerTrainerId);
+
+    SetMonData(mon, MON_DATA_HP_IV, &zero);
+    SetMonData(mon, MON_DATA_ATK_IV, &zero);
+    SetMonData(mon, MON_DATA_DEF_IV, &zero);
+    SetMonData(mon, MON_DATA_SPEED_IV, &zero);
+    SetMonData(mon, MON_DATA_SPATK_IV, &zero);
+    SetMonData(mon, MON_DATA_SPDEF_IV, &zero);
+
+    CalculateMonStats(mon);
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
@@ -6040,14 +6079,6 @@ void SetWildMonHeldItem(void)
             // Both held items are the same, 100% chance to hold item   
             SetMonData(&gEnemyParty[0], MON_DATA_HELD_ITEM, &gSpeciesInfo[species].itemCommon);
             return;
-        }
-
-        if (rnd > 44)
-        {
-            if (rnd <= 94)
-                SetMonData(&gEnemyParty[0], MON_DATA_HELD_ITEM, &gSpeciesInfo[species].itemCommon);
-            else
-                SetMonData(&gEnemyParty[0], MON_DATA_HELD_ITEM, &gSpeciesInfo[species].itemRare);
         }
     }
 }
